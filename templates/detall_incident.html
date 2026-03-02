@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detall de l'Incident</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .idor-warning {
+            background-color: #ffcccc;
+            border: 3px solid red;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .incident-card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .incident-header {
+            background-color: #e6f7ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .info-row {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+            display: inline-block;
+            width: 120px;
+        }
+        .value {
+            display: inline-block;
+            color: #333;
+        }
+        .severity {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .severity-CRÍTICA { background-color: #ff0000; color: white; }
+        .severity-ALTA { background-color: #ff6600; color: white; }
+        .severity-MITJANA { background-color: #ffcc00; color: black; }
+        .severity-BAIXA { background-color: #00cc00; color: white; }
+        .nav-links {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        .nav-links a {
+            margin-right: 15px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .exploit-demo {
+            background-color: #333;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    {% if error %}
+        <div class="idor-warning">
+            <h2>⚠️ ERROR</h2>
+            <p>{{ error }}</p>
+        </div>
+    {% else %}
+        <div class="idor-warning">
+            <h2>⚠️ VULNERABLE A IDOR ⚠️</h2>
+            <p>Aquesta pàgina NO comprova que l'usuari sigui el propietari de l'incident</p>
+            <p><strong>Usuari actual:</strong> {{ usuari_actual }}</p>
+        </div>
+
+        <div class="incident-card">
+            <div class="incident-header">
+                <h2>Detall de l'Incident #{{ incident.id }}</h2>
+                <p><strong>Creat per:</strong> {{ creador }}</p>
+            </div>
+
+            <div class="info-row">
+                <span class="label">Títol:</span>
+                <span class="value">{{ incident.title }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="label">Descripció:</span>
+                <span class="value">{{ incident.description }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="label">Severitat:</span>
+                <span class="severity severity-{{ incident.severity }}">{{ incident.severity }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="label">Detectat:</span>
+                <span class="value">{{ incident.detected_at }}</span>
+            </div>
+        </div>
+
+        <div class="exploit-demo">
+            <h3>🎯 Demostració d'IDOR</h3>
+            <p><strong>Prova a canviar la ID a la URL:</strong></p>
+            <p>URL actual: <code>/incident/{{ incident.id }}/</code></p>
+            <p>Prova amb: <code>/incident/1/</code>, <code>/incident/2/</code>, <code>/incident/3/</code>, etc.</p>
+            <p>Podràs veure incidents d'ALTRES USUARIS perquè NO HI HA CONTROL D'ACCÉS!</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="{% url 'cerca_vulnerable' %}">← Cerca d'Incidents</a>
+            <a href="{% url 'perfil' %}">Perfil</a>
+            <a href="{% url 'actualitzar_email' %}">Actualitzar Email</a>
+        </div>
+    {% endif %}
+</body>
+</html>
+

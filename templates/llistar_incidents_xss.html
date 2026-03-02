@@ -1,0 +1,36 @@
+k<!DOCTYPE html>
+<html>
+<head>
+    <title>Llistat d'Incidents - Demostració XSS</title>
+    <style>
+        body { font-family: Arial; max-width: 1000px; margin: 50px auto; padding: 20px; }
+        .warning { background-color: #ffcccc; border: 3px solid red; padding: 15px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .safe-badge { background-color: #ff6600; color: white; padding: 2px 5px; border-radius: 3px; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="warning">
+        <h1>⚠️ DEMOSTRACIÓ XSS AMB |safe ⚠️</h1>
+    </div>
+
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Títol</th>
+        </tr>
+        {% for incident in incidents %}
+        <tr>
+            <td>{{ incident.id }}</td>
+            <td>
+                <!-- ✅ ARA SÍ QUE ÉS CORRECTE: |safe sense espais -->
+                {{ incident.title|safe }}
+                <span class="safe-badge">|safe</span>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

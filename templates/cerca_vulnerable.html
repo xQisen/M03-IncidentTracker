@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cerca d'Incidents (Vulnerable)</title>
+    <style>
+        body { font-family: Arial; max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .vulnerability-warning { background-color: #ffeeee; border: 2px solid red; padding: 10px; margin-bottom: 20px; }
+        .result-item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .sql-error { background-color: #ffcccc; padding: 10px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="vulnerability-warning">
+        <h3>⚠️ CERCA VULNERABLE A SQL INJECTION ⚠️</h3>
+        <p>Aquesta pàgina és <strong>INTENCIONADAMENT VULNERABLE</strong> per demostrar SQL Injection.</p>
+    </div>
+
+    <h2>Cerca d'Incidents</h2>
+    
+    <form method="GET">
+        <input type="text" name="q" value="{{ query }}" placeholder="Cerca per títol o descripció..." style="width: 300px; padding: 5px;">
+        <button type="submit">Cercar</button>
+    </form>
+
+    {% if error %}
+        <div class="sql-error">
+            <h3>Error SQL:</h3>
+            <pre>{{ error }}</pre>
+        </div>
+    {% endif %}
+
+    {% if resultats %}
+        <h3>Resultats ({{ resultats|length }})</h3>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Títol (title)</th>
+        <th>Descripció</th>
+        <th>Severitat</th>
+        <th>Detectat</th>
+    </tr>
+    {% for incident in resultats %}
+    <tr>
+<td>
+    <a href="{% url 'detall_incident' incident.0 %}" style="color: #0066cc; text-decoration: none; font-weight: bold;">
+        {{ incident.1 }}
+    </a>
+</td>
+    </tr>
+    {% endfor %}
+</table>
+    {% endif %}
+</body>
+</html>

