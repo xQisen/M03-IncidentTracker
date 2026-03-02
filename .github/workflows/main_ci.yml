@@ -14,8 +14,8 @@ jobs:
       postgres:
         image: postgres:13
         env:
-          POSTGRES_USER: isard
-          POSTGRES_PASSWORD: isard
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: incidenttracker
         ports:
           - 5432:5432
@@ -59,13 +59,15 @@ jobs:
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
       run: |
         echo "SECRET_KEY=$SECRET_KEY" >> $GITHUB_ENV
-        echo "DATABASE_URL=postgresql://isard:isard@localhost:5432/incidenttracker" >> $GITHUB_ENV
+        # Usar postgres/postgres en lugar de isard/isard
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/incidenttracker" >> $GITHUB_ENV
         echo "DEBUG=False" >> $GITHUB_ENV
 
     - name: Preparar base de dades
       run: |
+        # Configurar Django per usar PostgreSQL
         python manage.py migrate
-        # Crear usuari analista1 (TOT EN UNA SOLA LÍNIA per evitar errors YAML)
+        # Crear usuari analista1
         python manage.py shell -c "from django.contrib.auth.models import User; user, created = User.objects.get_or_create(username='analista1', defaults={'email': 'analista1@example.com', 'is_staff': True}); print('Creat' if created else 'Ja existeix')"
 
     - name: Executar tests de seguretat
