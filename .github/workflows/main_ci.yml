@@ -1,0 +1,90 @@
+name: CI/CD Pipeline - Seguretat RBAC
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-security:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: isard
+          POSTGRES_PASSWORD: isard
+          POSTGRES_DB: incidenttracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout codi
+      uses: actions/checkout@v3
+
+    - name: Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Instal·lar Firefox i Geckodriver
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y firefox
+        # Instal·lar Geckodriver 0.33.0 (compatible amb Firefox)
+        wget https://github.com/mozilla/geckodriver/releases/download/v0.33.0/geckodriver-v0.33.0-linux64.tar.gz
+        tar -xvzf geckodriver-v0.33.0-linux64.tar.gz
+        chmod +x geckodriver
+        sudo mv geckodriver /usr/local/bin/
+        # Verificar instal·lació
+        firefox --version
+        geckodriver --version
+
+    - name: Instal·lar dependències Python
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install selenium webdriver-manager  # Per si de cas
+
+    - name: Configurar variables d'entorn
+      env:
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      run: |
+        echo "SECRET_KEY=$SECRET_KEY" >> $GITHUB_ENV
+        echo "DATABASE_URL=postgresql://isard:isard@localhost:5432/incidenttracker" >> $GITHUB_ENV
+        echo "DEBUG=False" >> $GITHUB_ENV
+        echo "MOZ_HEADLESS=1" >> $GITHUB_ENV
+
+    - name: Preparar base de dades
+      run: |
+        python manage.py migrate
+        # Crear usuari analista1 per als tests
+        python manage.py shell -c "
+from django.contrib.auth.models import User
+if not User.objects.filter(username='analista1').exists():
+    User.objects.create_user('analista1', 'analista1@example.com', 'password123')
+print('Usuari analista1 creat/verificat')
+"
+
+    - name: Executar tests de seguretat
+      run: |
+        # Fase RED (ha de fallar si l'analista té permisos)
+        echo "=== Executant tests de seguretat ==="
+        python manage.py test core.tests_selenium.SecurityRegressionTests.test_role_restriction --noinput
+        
+    - name: Notificació de resultats
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "✅ Tests de seguretat passats correctament!"
+        else
+          echo "❌ Tests de seguretat fallats! Reviseu els permisos RBAC."
+          exit 1
+        fi
