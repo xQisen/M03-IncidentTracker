@@ -19,6 +19,7 @@ jobs:
           POSTGRES_DB: incidenttracker
         ports:
           - 5432:5432
+        # Importante: añadir health check para que el job espere al contenedor
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -34,91 +35,65 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Instal·lar Chrome i Chromedriver
+    - name: Instal·lar Google Chrome
       run: |
         sudo apt-get update
-        sudo apt-get install -y google-chrome-stable unzip
-        # Chromedriver
-        wget -N https://storage.googleapis.com/chrome-for-testing-public/$(google-chrome --version | awk '{print $3}')/linux64/chromedriver-linux64.zip
-        unzip chromedriver-linux64.zip
-        sudo mv chromedriver-linux64/chromedriver /usr/local/bin/
-        sudo chmod +x /usr/local/bin/chromedriver
-        # Verificar
-        google-chrome --version
-        chromedriver --version
+        sudo apt-get install -y google-chrome-stable
+
+    - name: Configurar Chromedriver (Auto-detect version)
+      run: |
+        # Usamos una versión específica de 'chrome-for-testing' para evitar desajustes
+        CHROME_VERSION=$(google-chrome --version | cut -f 3 -d ' ' | cut -d '.' -f 1)
+        echo "Chrome Version: $CHROME_VERSION"
+        # Instalamos chromedriver usando el nuevo método de Google para versiones >114
+        pip install webdriver-manager
 
     - name: Instal·lar dependències Python
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install psycopg2-binary selenium
+        # Asegúrate de que tu requirements.txt no cause conflictos con psycopg2
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install psycopg2-binary selenium webdriver-manager
 
     - name: Configurar variables d'entorn
-      env:
-        SECRET_KEY: ${{ secrets.SECRET_KEY }}
       run: |
-        echo "SECRET_KEY=$SECRET_KEY" >> $GITHUB_ENV
+        echo "SECRET_KEY=${{ secrets.SECRET_KEY || 'django-insecure-test-key' }}" >> $GITHUB_ENV
         echo "GITHUB_ACTIONS=true" >> $GITHUB_ENV
         echo "DEBUG=False" >> $GITHUB_ENV
+        echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/incidenttracker" >> $GITHUB_ENV
 
     - name: Esperar que PostgreSQL estigui llest
       run: |
-        for i in {1..10}; do
-          if pg_isready -h localhost -p 5432 -U postgres; then
-            echo "✅ PostgreSQL està llest!"
-            break
-          fi
-          echo "Esperant PostgreSQL... intent $i"
+        until pg_isready -h localhost -p 5432 -U postgres; do
+          echo "Esperant PostgreSQL..."
           sleep 2
         done
 
     - name: Preparar base de dades
+      env:
+        # Forzamos las credenciales aquí para los comandos de Django
+        DB_PASSWORD: postgres
       run: |
-        # Verificar connexió
-        python -c "
-import psycopg2
-try:
-    conn = psycopg2.connect(
-        host='localhost',
-        port=5432,
-        user='postgres',
-        password='postgres',
-        database='incidenttracker'
-    )
-    print('✅ Connexió a PostgreSQL OK')
-    conn.close()
-except Exception as e:
-    print(f'❌ Error de connexió: {e}')
-    exit(1)
-"
-        # Migrar
         python manage.py migrate
         
-        # Crear usuari
+        # Crear usuario mediante un script de gestión para asegurar que existe
         python manage.py shell -c "
 from django.contrib.auth.models import User
-user, created = User.objects.get_or_create(
-    username='analista1',
-    defaults={
-        'email': 'analista1@example.com',
-        'is_staff': True
-    }
-)
-if created:
+try:
+    user = User.objects.get(username='analista1')
     user.set_password('password123')
-    user.save()
-    print('✅ Usuari analista1 CREAT')
-else:
     user.is_staff = True
     user.save()
     print('✅ Usuari analista1 ACTUALITZAT')
-from django.db import connection
-print(f'✅ Base de dades: {connection.vendor}')
+except User.DoesNotExist:
+    User.objects.create_superuser('analista1', 'analista1@example.com', 'password123')
+    print('✅ Usuari analista1 CREAT com Superuser per a tests')
 "
 
     - name: Executar tests de seguretat
       run: |
         echo "=== Executant tests de seguretat ==="
+        # Nota: Asegúrate de que el test use el modo 'headless' en Selenium para CI
         python manage.py test core.tests_selenium.SecurityRegressionTests.test_role_restriction --noinput
 
     - name: Notificació de resultats
@@ -126,9 +101,8 @@ print(f'✅ Base de dades: {connection.vendor}')
       run: |
         if [ "${{ job.status }}" == "success" ]; then
           echo "✅ Tests de seguretat passats correctament!"
-          echo "✅ PIPELINE COMPLETADA AMB ÈXIT"
         else
-          echo "❌ Tests de seguretat fallats! Reviseu els permisos RBAC."
-          echo "📝 Aquest error és NORMAL si és la Fase RED (esperat)"
-          exit 0  # No falla la pipeline per la Fase RED
+          echo "⚠️ La pipeline ha fallat o s'han detectat problemes."
+          # Si estás en fase RED de TDD, no quieres que el CI bloquee todo
+          # exit 0 
         fi
