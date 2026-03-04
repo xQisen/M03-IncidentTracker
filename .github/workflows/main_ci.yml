@@ -61,14 +61,15 @@ jobs:
     - name: Preparar base de dades
       run: |
         python manage.py migrate
-        python manage.py shell -c "
-from django.contrib.auth.models import User
-if not User.objects.filter(username='analista1').exists():
-    User.objects.create_user('analista1', 'analista1@example.com', 'password123', is_staff=True)
-    print('✅ Usuari analista1 CREAT')
-else:
-    print('✅ Usuari analista1 ja existeix')
-"
+        # Usamos un bloque indentado para evitar el error de la línea 65
+        python manage.py shell <<EOF
+        from django.contrib.auth.models import User
+        if not User.objects.filter(username='analista1').exists():
+            User.objects.create_user('analista1', 'analista1@example.com', 'password123', is_staff=True)
+            print('✅ Usuari analista1 CREAT')
+        else:
+            print('✅ Usuari analista1 ja existeix')
+        EOF
 
     - name: Executar tests de seguretat
       run: |
@@ -81,5 +82,5 @@ else:
         if [ "${{ job.status }}" == "success" ]; then
           echo "✅ Tests passats correctament!"
         else
-          echo "❌ Error en els tests. Revisa el log superior."
+          echo "❌ Error detectat en la pipeline."
         fi
